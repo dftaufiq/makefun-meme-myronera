@@ -10,7 +10,7 @@
 // Local check:
 //   mkdir -p /tmp/meme-out && MAKEFUN_BOT_DIR=. MAKEFUN_OUTPUT_DIR=/tmp/meme-out node main.ts
 
-import { copyFileSync, mkdirSync } from 'node:fs';
+import { copyFileSync, mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 // Inside the grader's container these resolve to /bot and /output; the env
@@ -22,6 +22,14 @@ const source = join(botDir, 'POST.json');
 const destination = join(outputDir, 'POST.json');
 
 try {
+  // Validate the source is well-formed JSON before copying it, so a
+  // corrupted POST.json fails here with a clear message instead of
+  // handing the grader a broken file.
+  try {
+    JSON.parse(readFileSync(source, 'utf8'));
+  } catch (parseError) {
+    throw new Error(`POST.json at ${source} is not valid JSON: ${(parseError as Error).message}`);
+  }
   // Make sure the destination folder exists before writing into it.
   mkdirSync(outputDir, { recursive: true });
   copyFileSync(source, destination);
